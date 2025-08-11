@@ -1,1 +1,33 @@
-.github/workflows/bot.yml
+name: crypto-bot
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes
+  workflow_dispatch:        # allow manual run
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run bot
+        env:
+          BYBIT_API_KEY: ${{ secrets.BYBIT_API_KEY }}
+          BYBIT_API_SECRET: ${{ secrets.BYBIT_API_SECRET }}
+          SYMBOL: "BTC/USDT"
+          TIMEFRAME: "5m"
+          SHORT_SMA: "9"
+          LONG_SMA: "21"
+          QUOTE_SIZE: "10"
+          TESTNET: "true"   # change to "false" for live
+        run: python bot.py
