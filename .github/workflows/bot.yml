@@ -1,9 +1,9 @@
 name: crypto-bot
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes
-  workflow_dispatch:        # allow manual run
+    - cron: "*/5 * * * *"
 
 jobs:
   run:
@@ -12,13 +12,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Show repo files
+        run: |
+          pwd
+          ls -la
+          echo "---- .github/workflows ----"
+          ls -la .github/workflows || true
+          echo "---- bot.py head ----"
+          head -n 40 bot.py || echo "bot.py not found"
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: |
+          python -V
+          pip install -r requirements.txt || pip install ccxt
+
+      - name: Test import ccxt
+        run: python - << 'PY'
+import sys
+print("python ok", sys.version)
+import ccxt
+print("ccxt ok", ccxt.__version__)
+PY
 
       - name: Run bot
         env:
@@ -29,5 +48,5 @@ jobs:
           SHORT_SMA: "9"
           LONG_SMA: "21"
           QUOTE_SIZE: "10"
-          TESTNET: "true"   # change to "false" for live
+          TESTNET: "true"
         run: python bot.py
