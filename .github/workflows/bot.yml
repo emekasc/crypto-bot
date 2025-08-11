@@ -1,52 +1,12 @@
-name: crypto-bot
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "*/5 * * * *"
-
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Show repo files
-        run: |
-          pwd
-          ls -la
-          echo "---- .github/workflows ----"
-          ls -la .github/workflows || true
-          echo "---- bot.py head ----"
-          head -n 40 bot.py || echo "bot.py not found"
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install deps
-        run: |
-          python -V
-          pip install -r requirements.txt || pip install ccxt
-
-      - name: Test import ccxt
-        run: python - << 'PY'
-import sys
-print("python ok", sys.version)
-import ccxt
-print("ccxt ok", ccxt.__version__)
-PY
-
       - name: Run bot
         env:
-          BYBIT_API_KEY: ${{ secrets.BYBIT_API_KEY }}
-          BYBIT_API_SECRET: ${{ secrets.BYBIT_API_SECRET }}
+          OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_API_PASSPHRASE: ${{ secrets.OKX_API_PASSPHRASE }}
           SYMBOL: "BTC/USDT"
           TIMEFRAME: "5m"
           SHORT_SMA: "9"
           LONG_SMA: "21"
           QUOTE_SIZE: "10"
-          TESTNET: "true"
+          TESTNET: "true"   # paper trading on OKX when true
         run: python bot.py
