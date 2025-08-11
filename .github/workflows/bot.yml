@@ -1,3 +1,69 @@
+name: crypto-bot-debug
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show repo files
+        run: |
+          pwd
+          ls -la
+          echo "---- workflows ----"
+          ls -la .github/workflows || true
+          echo "---- bot.py head ----"
+          head -n 40 bot.py || echo "bot.py not found"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ccxt
+        run: |
+          python -V
+          pip install ccxt
+
+      - name: OKX connectivity test (no trading)
+        env:
+          OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_API_PASSPHRASE: ${{ secrets.OKX_API_PASSPHRASE }}
+        run: |
+          python - << 'PY'
+import os, ccxt, sys
+print("ccxt:", ccxt.__version__)
+# Check secrets exist (not printing values)
+print("Secrets present:", all(bool(os.getenv(k)) for k in ["OKX_API_KEY","OKX_API_SECRET","OKX_API_PASSPHRASE"]))
+ex = ccxt.okx({
+  "apiKey": os.getenv("OKX_API_KEY"),
+  "secret": os.getenv("OKX_API_SECRET"),
+  "password": os.getenv("OKX_API_PASSPHRASE"),
+  "enableRateLimit": True,
+  "options": {"defaultType": "spot"}
+})
+ex.set_sandbox_mode(True)  # paper mode
+print("Sandbox mode ON")
+# Public call (should always work)
+m = ex.load_markets()
+print("Markets loaded:", len(m))
+print("Has BTC/USDT:", "BTC/USDT" in m)
+# Try a private call that doesn't trade
+try:
+  bal = ex.fetch_balance()
+  print("Fetched balance OK. Free USDT:", bal.get("USDT",{}).get("free"))
+except Exception as e:
+  print("Private call error:", type(e).__name__, e)
+  sys.exit(1)
+PY
+
       - name: Run bot
         env:
           OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
@@ -8,5 +74,5 @@
           SHORT_SMA: "9"
           LONG_SMA: "21"
           QUOTE_SIZE: "10"
-          TESTNET: "true"   # paper trading on OKX when true
+          TESTNET: "true"
         run: python bot.py
